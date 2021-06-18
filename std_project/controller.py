@@ -12,6 +12,5 @@ args = vars(ap.parse_args())
 # yolo_object_detector = YoloObjectDetector(args["image"], args["yolo"],
 #                                 args["confidence"], args["threshold"])
 # data = yolo_object_detector.detect_objects()
-
 fp_controller = FeaturePointsController(args["image"])
 fp_controller.run()
