@@ -1,0 +1,53 @@
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    background: #35353d;
+}
+
+.button_slide {
+    color: #FFF;
+    border: 3px solid rgb(38, 139, 7);
+    border-radius: 10px;
+    padding: 18px 36px;
+    display: inline-block;
+    font-family: 'Bebas Neue';
+    font-size: 20px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 0 rgb(38, 139, 7);
+    -webkit-transition: ease-out 0.4s;
+    -moz-transition: ease-out 0.4s;
+    transition: ease-out 0.4s;
+    margin: 16px;
+}
+
+.slide_down:hover {
+    box-shadow: inset 0 100px 0 0 rgb(38, 139, 7);
+}
+
+.slide_right:hover {
+    box-shadow: inset 400px 0 0 0 rgb(38, 139, 7);
+}
+
+.slide_left:hover {
+    box-shadow: inset 0 0 0 50px rgb(38, 139, 7);
+}
+
+.slide_diagonal:hover {
+    box-shadow: inset 400px 50px 0 0 rgb(38, 139, 7);
+}
+
+#outer {
+    width: 364px;
+    margin: 50px auto 0 auto;
+    text-align: center;
+}
+
+canvas {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
