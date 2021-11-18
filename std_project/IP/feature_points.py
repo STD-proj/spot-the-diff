@@ -1,4 +1,8 @@
-
+import argparse
+from msilib import Directory
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from IP.image_utils import *
 import random
 
@@ -65,10 +69,9 @@ class FeaturePointsController():
         '''
         return (xB - xA) * (yB - yA)
 
-    def second_pass_filtering(self, orig_img, bin_img, rects):
+    def second_pass_filtering(self, bin_img, rects):
         '''
         This function filters a second pass
-        :param orig_img: original image
         :param bin_img: binary image
         :param rects: rectangles
         :return: new rectangles and new changes
@@ -82,7 +85,6 @@ class FeaturePointsController():
         bin_img = cv2.erode(bin_img, kernel, iterations=1)
 
         new_rects = []
-        new_changes = []
 
         # compare each rectangle to its segmentation image
         for index, (xA, yA, xB, yB) in enumerate(rects):
@@ -101,84 +103,49 @@ class FeaturePointsController():
                 continue
             new_rects.append((xA, yA, xB, yB))  # keep current rectangle
 
-            source_img = read_img(self._input_img_path)
+        return new_rects
+
+    def apply_changes(self, bin_img, rects, num_changes=1):
+
+        source_img = read_img(self._input_img_path)
+        # calculate erotion of binary image to remove small noises in pic
+        kernel = np.ones((5, 5), 'uint8')
+        bin_img = cv2.erode(bin_img, kernel, iterations=1)
+
+        if num_changes > len(rects):
+            num_changes = len(rects)
+        changes = random.sample(rects, num_changes) #randomize few changes
+        change_img = read_img(self._input_img_path)
+        idxs = []
+
+        for index, (xA, yA, xB, yB) in enumerate(changes):
+            crop_img_bin = bin_img[yA:yB, xA:xB]
+
+            white_count = cv2.countNonZero(crop_img_bin)
+            black_count = crop_img_bin.size - white_count
+
+            # calculate the percentage of each color
+            white_per = white_count / crop_img_bin.size
+            black_per = black_count / crop_img_bin.size
+
             if white_per <= black_per:
-                # orig_img = self.remove_white(orig_img, crop_img_bin, xA, yA)
-                orig_img = self.remove_color(orig_img, crop_img_bin, xA, yA, is_black=False)
+                change_img = self.remove_color(source_img, crop_img_bin, xA, yA, is_black=False)
             else:
-                # orig_img = self.remove_black(orig_img, crop_img_bin, xA, yA)
-                orig_img = self.remove_color(orig_img, crop_img_bin, xA, yA)
-            # change_img = self.remove_white(source_img, crop_img_bin, xA, yA)
-            change_img = self.remove_color(source_img, crop_img_bin, xA, yA, is_black=False)
+                change_img = self.remove_color(source_img, crop_img_bin, xA, yA)
+            idxs.append((rects.index((xA, yA, xB, yB)), (xA, yA, xB, yB)))
 
-            new_changes.append((change_img, self._filename, index, (xA, yA, xB, yB)))  # keep current change
-
-        return new_rects, new_changes
-
-    def remove_white(self, orig_img, crop_img_bin, xA, yA):
-        '''
-        This function removes white area in image.
-        THIS FUNCTION IS NOT IN USE DUE TO A MORE GENERIC FUNCTION
-        :param orig_img: original image
-        :param crop_img_bin: croped binary image
-        :param xA: top left x value
-        :param yA: top left y value
-        :return: original image after the change
-        '''
-        sums = []
-        # copy the segment to the original image
-        for y in range(crop_img_bin.shape[0]):
-            for x in range(crop_img_bin.shape[1]):
-                if crop_img_bin[y, x] != 0:
-                    sums.append(orig_img[y + yA, x + xA])
-
-        avg_a = sum([color[0] for color in sums]) / len(sums)
-        avg_b = sum([color[1] for color in sums]) / len(sums)
-        avg_c = sum([color[2] for color in sums]) / len(sums)
-
-        for y in range(crop_img_bin.shape[0]):
-            for x in range(crop_img_bin.shape[1]):
-                if crop_img_bin[y, x] == 0:
-                    orig_img[y + yA, x + xA] = [avg_a, avg_b, avg_c]
-        return orig_img
-
-    def remove_black(self, orig_img, crop_img_bin, xA, yA):
-        '''
-                This function removes black area in image.
-                THIS FUNCTION IS NOT IN USE DUE TO A MORE GENERIC FUNCTION
-                :param orig_img: original image
-                :param crop_img_bin: croped binary image
-                :param xA: top left x value
-                :param yA: top left y value
-                :return: original image after the change
-                '''
-        sums = []
-        # copy the segment to the original image
-        for y in range(crop_img_bin.shape[0]):
-            for x in range(crop_img_bin.shape[1]):
-                if crop_img_bin[y, x] == 0:
-                    sums.append(orig_img[y + yA, x + xA])
-
-        avg_a = sum([color[0] for color in sums]) / len(sums)
-        avg_b = sum([color[1] for color in sums]) / len(sums)
-        avg_c = sum([color[2] for color in sums]) / len(sums)
-
-        for y in range(crop_img_bin.shape[0]):
-            for x in range(crop_img_bin.shape[1]):
-                if crop_img_bin[y, x] != 0:
-                    orig_img[y + yA, x + xA] = [avg_a, avg_b, avg_c]
-        return orig_img
+        return change_img, self._filename, idxs
 
     def remove_color(self, orig_img, crop_img_bin, xA, yA, is_black=True):
         '''
-                This function removes black or white area in image.
-                :param orig_img: original image
-                :param crop_img_bin: croped binary image
-                :param xA: top left x value
-                :param yA: top left y value
-                :param is_black: which color to remove
-                :return: original image after the change
-                '''
+        This function removes black or white area in image.
+        :param orig_img: original image
+        :param crop_img_bin: cropped binary image
+        :param xA: top left x value
+        :param yA: top left y value
+        :param is_black: which color to remove
+        :return: original image after the change
+        '''
         sums = []
         # copy the segment to the original image
         for y in range(crop_img_bin.shape[0]):
@@ -235,45 +202,48 @@ class FeaturePointsController():
         '''
         return 5 < w < 100 and 10 < h < 100
 
-    def known_objects_overlap(self):
-        pass
-
-    def compare_to_another_threshold(self):
-        pass
-
-    def check_edges_variance(self):
-        pass
-
-    def choose_changes(self, rects):
-        pass
-
-    def run(self, directory=DIRECTORY):
+    def run(self, num_changes):
         '''
         This function runs all the program in current file
         :return: None
         '''
 
         # read image and keep copies of it
-        copy_img = read_img(self._input_img_path)
-        copy_img2 = read_img(self._input_img_path)
-        copy_img3 = read_img(self._input_img_path)
+        feature_points_img = read_img(self._input_img_path)
+        blur_img = read_img(self._input_img_path)
+        final_rects_img = read_img(self._input_img_path)
 
-        rects = self.find_feature_points(copy_img)  # find features in image
-        self.draw_rectangles(copy_img, rects, (0, 255, 0))  # draw rectangles on image
+        rects = self.find_feature_points(feature_points_img)  # find features in image
+        self.draw_rectangles(feature_points_img, rects, (0, 255, 0))  # draw rectangles on image
 
-        blur_img = cv2.GaussianBlur(copy_img2, (3, 3), cv2.BORDER_DEFAULT)
+        blur_img = cv2.GaussianBlur(blur_img, (3, 3), cv2.BORDER_DEFAULT)
         grey_img = cv2.cvtColor(blur_img, cv2.COLOR_BGR2GRAY)
         bin_img = self.get_segmentation_img(grey_img)
         rects = sorted(rects, key=lambda tup: tup[0])
-        rects, changes = self.second_pass_filtering(self._img, bin_img, rects)
+        rects = self.second_pass_filtering(bin_img, rects)
+        self.draw_rectangles(final_rects_img, rects, (0, 0, 255))  # draw rectangles on image
 
-        self.draw_rectangles(copy_img3, rects, (0, 0, 255))  # draw rectangles on image
+        change_img, filename, idxs = self.apply_changes(bin_img, rects, num_changes)
+        return change_img, idxs
 
-        rand_change_index = random.randint(1, len(changes)-1)  # raffle a change
 
-        change_img, filename, index, crop = changes[rand_change_index]
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--image", required=True,
+                    help="path to input image")
+    ap.add_argument("-n", "--num_changes", required=True,
+                    help="number of changes to apply")
+    args = vars(ap.parse_args())
+    image = args["image"]
+    num_changes = args["num_changes"]
 
-        save_img(change_img, filename, directory, index, crop)  # save raffle image
+    fpc = FeaturePointsController(image)
+    change_img, idxs = fpc.run(int(num_changes))
 
-        cv2.waitKey()
-        cv2.destroyAllWindows()
+    show_img(fpc._img, "first img")
+    show_img(change_img, "change img")
+    fpc.draw_rectangles(change_img, [rect[1] for rect in idxs], (255, 0, 0))
+    show_img(change_img, "change img with rects")
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+

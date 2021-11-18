@@ -3,6 +3,7 @@ from scipy import ndimage
 from PIL import Image as im
 from pathlib import Path
 import os
+import sys
 import glob
 import cv2
 import numpy as np
@@ -10,6 +11,8 @@ from imutils.object_detection import non_max_suppression
 import pathlib
 import pandas as pd
 import shutil
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Consts:
 AMOUNT_OF_RUNS = 5
