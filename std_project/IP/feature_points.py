@@ -1,7 +1,10 @@
 import argparse
+from builtins import int
 from msilib import Directory
 import sys
 import os
+from operator import index
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from IP.image_utils import *
 import random
@@ -74,7 +77,7 @@ class FeaturePointsController():
         This function filters a second pass
         :param bin_img: binary image
         :param rects: rectangles
-        :return: new rectangles and new changes
+        :return: new rectangles
         '''
         # calculate surface of each crop to remove small areas
         surfaces = [self.surface_of_crop(xA, yA, xB, yB) for (xA, yA, xB, yB) in rects]
@@ -106,7 +109,13 @@ class FeaturePointsController():
         return new_rects
 
     def apply_changes(self, bin_img, rects, num_changes=1):
-
+        '''
+        This function applies the given numer of canges
+        :param bin_img: binary image
+        :param rects: rectangles
+        :param num_changes: number of random changes to apply
+        :return: new picture and the changes indexes
+        '''
         source_img = read_img(self._input_img_path)
         # calculate erotion of binary image to remove small noises in pic
         kernel = np.ones((5, 5), 'uint8')
@@ -135,6 +144,32 @@ class FeaturePointsController():
             idxs.append((rects.index((xA, yA, xB, yB)), (xA, yA, xB, yB)))
 
         return change_img, self._filename, idxs
+
+    def save_all_changes_one_per_img(self, bin_img, rects, directory):
+        '''
+        This function saves all changes, one per image
+        It's for creating the database
+        :param bin_img: binary image
+        :param rects: rectangles of changes
+        :param directory: the directory to save in
+        '''
+        for index, (xA, yA, xB, yB) in enumerate(rects):
+            source_img = read_img(self._input_img_path)
+            crop_img_bin = bin_img[yA:yB, xA:xB]
+
+            white_count = cv2.countNonZero(crop_img_bin)
+            black_count = crop_img_bin.size - white_count
+
+            # calculate the percentage of each color
+            white_per = white_count / crop_img_bin.size
+            black_per = black_count / crop_img_bin.size
+
+            if white_per <= black_per:
+                change_img = self.remove_color(source_img, crop_img_bin, xA, yA, is_black=False)
+            else:
+                change_img = self.remove_color(source_img, crop_img_bin, xA, yA)
+
+            save_img(source_img, self._filename, directory, index, (xA, yA, xB, yB))
 
     def remove_color(self, orig_img, crop_img_bin, xA, yA, is_black=True):
         '''
@@ -202,10 +237,13 @@ class FeaturePointsController():
         '''
         return 5 < w < 100 and 10 < h < 100
 
-    def run(self, num_changes):
+    def run(self, num_changes=1, one_per_img=False, directory=DIRECTORY):
         '''
         This function runs all the program in current file
-        :return: None
+        :param num_changes: number of changes to apply
+        :param one_per_img: true if we want to save one change per image
+        :param directory: directory to save the images with one change
+        :return: the new image and its indexes
         '''
 
         # read image and keep copies of it
@@ -223,8 +261,12 @@ class FeaturePointsController():
         rects = self.second_pass_filtering(bin_img, rects)
         self.draw_rectangles(final_rects_img, rects, (0, 0, 255))  # draw rectangles on image
 
-        change_img, filename, idxs = self.apply_changes(bin_img, rects, num_changes)
-        return change_img, idxs
+        if one_per_img:
+            self.save_all_changes_one_per_img(bin_img, rects, directory)
+            return
+        else:
+            change_img, filename, idxs = self.apply_changes(bin_img, rects, num_changes)
+            return change_img, filename, idxs
 
 
 if __name__ == "__main__":
@@ -238,7 +280,7 @@ if __name__ == "__main__":
     num_changes = args["num_changes"]
 
     fpc = FeaturePointsController(image)
-    change_img, idxs = fpc.run(int(num_changes))
+    change_img, _, idxs = fpc.run(int(num_changes))
 
     show_img(fpc._img, "first img")
     show_img(change_img, "change img")
