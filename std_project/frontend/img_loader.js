@@ -43,3 +43,13 @@ function drawImage(img, canvas, context) {
 function chooseFile() {
     $("#uploadFile").click();
 }
+
+function processImage() {
+    //send image to server side with flask
+    $.post("http://localhost:5000/postmethod", {
+        img: "hello"
+    }, function(err, req, resp) {
+        //get the new image from python side
+        console.log("resp=", resp["responseJSON"]);
+    });
+}
