@@ -116,7 +116,7 @@ class FeaturePointsController():
         :param num_changes: number of random changes to apply
         :return: new picture and the changes indexes
         '''
-        source_img = read_img(self._input_img_path)
+        source_img = self._img.copy()
         # calculate erotion of binary image to remove small noises in pic
         kernel = np.ones((5, 5), 'uint8')
         bin_img = cv2.erode(bin_img, kernel, iterations=1)
@@ -124,7 +124,7 @@ class FeaturePointsController():
         if num_changes > len(rects):
             num_changes = len(rects)
         changes = random.sample(rects, num_changes) #randomize few changes
-        change_img = read_img(self._input_img_path)
+        change_img = self._img.copy()
         idxs = []
 
         for index, (xA, yA, xB, yB) in enumerate(changes):
@@ -154,7 +154,7 @@ class FeaturePointsController():
         :param directory: the directory to save in
         '''
         for index, (xA, yA, xB, yB) in enumerate(rects):
-            source_img = read_img(self._input_img_path)
+            source_img = self._img.copy()
             crop_img_bin = bin_img[yA:yB, xA:xB]
 
             white_count = cv2.countNonZero(crop_img_bin)
@@ -247,9 +247,10 @@ class FeaturePointsController():
         '''
 
         # read image and keep copies of it
-        feature_points_img = read_img(self._input_img_path)
-        blur_img = read_img(self._input_img_path)
-        final_rects_img = read_img(self._input_img_path)
+        self._img = resize_img(self._img, 600, 400)
+        feature_points_img = self._img.copy()
+        blur_img = self._img.copy()
+        final_rects_img = self._img.copy()
 
         rects = self.find_feature_points(feature_points_img)  # find features in image
         self.draw_rectangles(feature_points_img, rects, (0, 255, 0))  # draw rectangles on image
@@ -266,14 +267,15 @@ class FeaturePointsController():
             return
         else:
             change_img, filename, idxs = self.apply_changes(bin_img, rects, num_changes)
+            save_img(change_img, filename, directory, idxs[0][0], idxs[0][1])
             return change_img, filename, idxs
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--image", required=True,
+    ap.add_argument("-i", "--image", required=True, \
                     help="path to input image")
-    ap.add_argument("-n", "--num_changes", required=True,
+    ap.add_argument("-n", "--num_changes", required=True, \
                     help="number of changes to apply")
     args = vars(ap.parse_args())
     image = args["image"]

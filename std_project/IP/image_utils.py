@@ -27,6 +27,14 @@ def read_img(img_path):
     '''
     return cv2.imread(img_path)
 
+def resize_img(img_path, dimx, dimy):
+    '''
+    This function reads an image from a given path
+    :param img_path: a path of an image
+    :return: the read image
+    '''
+    return cv2.resize(img_path, (dimx, dimy))
+
 def show_img(img, title):
     '''
     This image shows an image

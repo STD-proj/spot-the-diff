@@ -24,7 +24,6 @@ def main(image):
         fp_controller.run()  # run a function to create a change in an image
         img = get_changed_image(DIRECTORY)  # get changed image
 
-
         img_name, source_img, change_img = get_extracted_img(img)  # extract the changed image into filename, source image and current image
         classified = classify_image(img_name, source_img, change_img)  # classify changed image
         print(img_name, classified)
@@ -43,6 +42,7 @@ def main(image):
 
 # When user runs the program
 if __name__ == "__main__":
+
     try:
         ap = argparse.ArgumentParser()
         ap.add_argument("-i", "--image", required=True,
