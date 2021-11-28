@@ -5,7 +5,11 @@ from matplotlib import pyplot as plt
 from IP.image_utils import *
 from DL.TrainChanges import calculate_diff_per_image, get_crop_coordinates, get_extracted_img
 
-filenames = ['good_data.csv', 'bad_data.csv']
+import os
+path = os.path.dirname(os.path.abspath(__file__))
+good_file = os.path.join(path, 'good_data.csv')
+bad_file = os.path.join(path, 'bad_data.csv')
+filenames = [good_file, bad_file]
 
 def define_graph_configure(columns_amount):
     '''

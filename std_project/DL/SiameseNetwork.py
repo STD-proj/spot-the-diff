@@ -83,6 +83,8 @@ def create_model():
     model.summary()
     return model
 
+def predict(model, x1, x2):
+    return model.predict([x1, x2])
 
 
 X_image_train1, X_image_train2, y_train, X_image_test1, X_image_test2, y_test = create_data()
@@ -113,5 +115,5 @@ history = model.fit([X_image_train1, X_image_train2], y_train,
 # serialize the model to disk
 print("[INFO] saving siamese model...")
 model.save('./siamese_mode.h5')
-pred = model.predict([X_image_test1, X_image_test2])
+pred = predict(model, X_image_test1, X_image_test2)
 print(pred)
