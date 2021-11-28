@@ -1,5 +1,10 @@
 # Imports:
 import argparse
+import os
+import sys
+from builtins import filter
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from IP.feature_points import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -113,14 +118,17 @@ def keras_resnet_model():
                   keyword='good_changes')  # convert all files in the above list that named with keyword
     removeImageFromDir(list_good_changes, path_good_changes, 'good_changes')  # remove previous data from path
 
-    files = glob.glob(dirpath + '/**/*' + formatJPG)  # get files' names that end with .jpg
+    files_good = glob.glob(path_good_changes + '/*' + formatJPG)
+    files_bad = glob.glob(path_bad_changes + '/*' + formatJPG)
+
+    files = files_good + files_bad
+    half_files = int(len(files) / 2 + 1)
     labels = np.array([0] * 150 + [1] * 150)  # for later calculations
 
     # for later calculations
     size = np.zeros(len(files))
     for i, f in enumerate(files):
         size[i] = getsize(f)
-
     idx = np.where(size == 0)[0]
     for i in idx[::-1]:
         del (files[i])
@@ -182,8 +190,8 @@ def keras_resnet_model():
         class_mode='binary')
 
     # iteration of the training data in batches
-    keras_model.fit_generator(train_generator, train_examples, batch_size, epoch=2)
-    resnet_model.fit_generator(train_generator, train_examples, batch_size, epoch=2)
+    keras_model.fit_generator(train_generator, train_examples, batch_size, epoch=10)
+    resnet_model.fit_generator(train_generator, train_examples, batch_size, epoch=10)
 
     # generate test data
     batch_size = 1
@@ -214,7 +222,7 @@ def main(image):
 
     fp_controller = FeaturePointsController(image)
     check_folder = f"{DIRECTORY}/test"
-    fp_controller.run(check_folder)  # run a function to create a change in an image
+    fp_controller.run(1, False, check_folder)  # run a function to create a change in an image
 
     batch_size = 1
     test_generator = datagen.flow_from_directory(
@@ -234,6 +242,7 @@ def main(image):
     print("End Keras\n")
 
     p = resnet_model.predict(x_test)  # generate predictions on new data
+    resnet_model.model.save('resnet_model.h5')
     p = np.hstack([y_pred_resnet, 1 - y_pred_resnet])
     method = "Resnet"
     draw(method, label_dict, batch_size, x_test, y_test, p, size=(12, 12))
@@ -250,14 +259,11 @@ def main(image):
 
 if __name__ == '__main__':
     try:
-        # ap = argparse.ArgumentParser()
-        # ap.add_argument("-i", "--image", required=True,
-        #                 help="path to input image")
-        # args = vars(ap.parse_args())
-        # image = args["image"]
-        # img_name = input('Please insert image name: ')
-        # image = "../examples/" + img_name
-        image = "../examples/img3.jpg"
+        ap = argparse.ArgumentParser()
+        ap.add_argument("-i", "--image", required=True,
+                        help="path to input image")
+        args = vars(ap.parse_args())
+        image = args["image"]
         main(image)  # run program
         plt.show()  # show linear regression on graph
     except Exception as e:
