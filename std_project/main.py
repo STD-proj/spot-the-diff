@@ -1,11 +1,14 @@
 
 # -- Imports --
 import argparse
+
+from PIL import Image
 from IP.feature_points import *
 from DL.Regression import *
+from VAL.test import *
 # from DL.Regression import classify_image, get_extracted_img
 
-
+test_system = TestProject()
 def main(image):
     '''
     This is the main function.
@@ -49,6 +52,7 @@ if __name__ == "__main__":
                         help="path to input image")
         args = vars(ap.parse_args())
         image = args["image"]
+        test_system.test_function_argument(image, 'image')
         main(image)  # run program
         plt.show()  # show linear regression on graph
     except Exception as e:
