@@ -1,10 +1,10 @@
 import unittest
-from PIL import Image
+from PIL import Image 
 
 class TestProject(unittest.TestCase):
 
     # test that we made by running the code, and we document it.
-    
+
     def test_feature_points(self, image):
         """
         Get an image and see if it find feature points in a randomal image
